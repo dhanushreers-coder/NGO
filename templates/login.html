@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - ReliefSync</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="blob-c"></div>
+    <div class="blob-c blob-2"></div>
+    
+    <div class="main-container" style="display: flex; justify-content: center; align-items: center; min-height: 80vh;">
+        <div class="glass-card" style="width: 100%; max-width: 450px; text-align: center;">
+            <div class="logo" style="margin-bottom: 2rem;">Resource<span>AI</span></div>
+            <p style="color: var(--text-muted); margin-bottom: 2rem;">Secure Access Portal</p>
+            
+            <form method="POST" action="/login" style="text-align: left;">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" name="username" placeholder="Enter your username" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" name="password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn" style="width: 100%; margin-top: 1rem;">Authenticate</button>
+            </form>
+            
+            <div style="margin-top: 2rem;">
+                <p style="color: var(--text-muted); font-size: 0.9rem;">
+                    Don't have an account? <a href="/register" style="color: var(--primary); text-decoration: none;">Register here</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

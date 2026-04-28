@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% block content %}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem;">
+        <div>
+            <h2>Command Center</h2>
+            <p style="color: var(--text-muted);">Manage your resources intelligently.</p>
+        </div>
+    </div>
+
+    <!-- LIVE ACTIVITY TICKER -->
+    <div class="glass-card" style="padding: 0.8rem 1.5rem; margin-bottom: 2rem; border-left: 4px solid var(--primary); display: flex; align-items: center; gap: 1rem; overflow: hidden;">
+        <div style="white-space: nowrap; font-weight: 700; color: var(--primary); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;">Live Activity:</div>
+        <div style="flex: 1; overflow: hidden; position: relative; height: 1.2rem;">
+            <div id="ticker" style="position: absolute; width: 100%; transition: transform 0.5s ease-in-out;">
+                {% if logs %}
+                    {% for log in logs %}
+                        <div class="ticker-item" style="font-size: 0.9rem; color: var(--text-color);">
+                            {{ log.message }} <span style="color: var(--text-muted); font-size: 0.75rem;">({{ log.created_at.strftime('%H:%M:%S') }})</span>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="font-size: 0.9rem; color: var(--text-muted);">Awaiting system events...</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <script>
+        let currentIdx = 0;
+        const ticker = document.getElementById('ticker');
+        const items = document.querySelectorAll('.ticker-item');
+        if (items.length > 1) {
+            setInterval(() => {
+                currentIdx = (currentIdx + 1) % items.length;
+                ticker.style.transform = `translateY(-${currentIdx * 1.2}rem)`;
+            }, 4000);
+        }
+    </script>
+
+    <!-- STATS ROW -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem;">
+        <div class="glass-card" style="text-align: center; padding: 1.5rem;">
+            <h4 style="color: var(--text-muted); margin-bottom: 0.5rem;">Total Volunteers</h4>
+            <div style="font-size: 2.5rem; font-weight: 700; color: #10b981;">{{ stats.total_vol }}</div>
+        </div>
+        <div class="glass-card" style="text-align: center; padding: 1.5rem;">
+            <h4 style="color: var(--text-muted); margin-bottom: 0.5rem;">Total Requests</h4>
+            <div style="font-size: 2.5rem; font-weight: 700; color: #3b82f6;">{{ stats.total_req }}</div>
+        </div>
+        <div class="glass-card" style="text-align: center; padding: 1.5rem;">
+            <h4 style="color: var(--text-muted); margin-bottom: 0.5rem;">Completed Tasks</h4>
+            <div style="font-size: 2.5rem; font-weight: 700; color: #8b5cf6;">{{ stats.completed }}</div>
+        </div>
+        <div class="glass-card" style="text-align: center; padding: 1.5rem;">
+            <h4 style="color: var(--text-muted); margin-bottom: 0.5rem;">Urgent Active</h4>
+            <div style="font-size: 2.5rem; font-weight: 700; color: #ef4444;">{{ stats.urgent }}</div>
+        </div>
+    </div>
+
+    <!-- MAIN ACTIONS -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 3rem;">
+        <div class="glass-card" style="text-align: center; cursor: pointer;" onclick="window.location.href='/add_request'">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📝</div>
+            <h3>Create Request</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Initialize a new resource allocation process and define skills.</p>
+            <span class="btn btn-small">Start Flow</span>
+        </div>
+
+        <div class="glass-card" style="text-align: center; cursor: pointer;" onclick="window.location.href='/view_requests'">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+            <h3>Active Queue</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Monitor ongoing requests and execute automated matching algorithms.</p>
+            <span class="btn btn-small">View Queue</span>
+        </div>
+
+        <div class="glass-card" style="text-align: center; cursor: pointer;" onclick="window.location.href='/add_volunteer'">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">👤</div>
+            <h3>Add Volunteer</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Register a new volunteer into the system database without dummy data.</p>
+            <span class="btn btn-small" style="background: linear-gradient(135deg, #10b981, #059669);">Register</span>
+        </div>
+    </div>
+
+    <!-- CREATIVE EXTRAS SECTION -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+        <!-- Weather & Crisis Predictor -->
+        <div class="glass-card">
+            <h3 style="margin-bottom: 1.5rem;">📡 Crisis Predictor (Real-time Weather)</h3>
+            <div id="weather-alert" style="padding: 1rem; border-radius: 8px; background: rgba(255,255,255,0.05); text-align: center;">
+                Loading weather data...
+            </div>
+            <script>
+                // Fetch weather from open-meteo (using central india approx coords)
+                fetch('https://api.open-meteo.com/v1/forecast?latitude=12.97&longitude=77.59&current_weather=true&hourly=precipitation')
+                    .then(r => r.json())
+                    .then(data => {
+                        let precip = data.hourly.precipitation[0];
+                        let wdiv = document.getElementById('weather-alert');
+                        if (precip > 5) {
+                            wdiv.innerHTML = '<span style="font-size:1.5rem;">🚨</span><br/><strong style="color:#ef4444;">High flood risk area detected!</strong><br/>Precipitation: ' + precip + 'mm. Pre-prepare volunteers.';
+                            wdiv.style.background = 'rgba(239, 68, 68, 0.2)';
+                        } else {
+                            wdiv.innerHTML = '<span style="font-size:1.5rem;">☀️</span><br/><strong style="color:#10b981;">Weather conditions normal.</strong><br/>No immediate weather crisis predicted.';
+                            wdiv.style.background = 'rgba(16, 185, 129, 0.1)';
+                        }
+                    }).catch(e => console.error(e));
+            </script>
+        </div>
+
+        <!-- Leaderboard -->
+        <div class="glass-card" style="padding: 1.5rem;">
+            <h3 style="margin-bottom: 1.5rem; font-size:1.2rem;">🏆 Top Volunteers</h3>
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                {% for l in leaders %}
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <div style="font-weight: 500;">
+                        {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% else %}🥉{% endif %}
+                        {{ l.name }}
+                    </div>
+                    <div style="background: rgba(99,102,241,0.2); padding: 4px 10px; border-radius: 12px; font-size: 0.85rem; color: #a5b4fc;">
+                        {{ l.points }} pts
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <!-- CRISIS HEATMAP -->
+    <div class="glass-card" style="margin-top: 2rem; padding: 1.5rem;">
+        <h3 style="margin-bottom: 1rem;">🔴 Live Crisis Heatmap (Visual Impact)</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">Visualizing high-demand areas in real-time. Red zones indicate high urgency and high volume of requests.</p>
+        
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+        
+        <div id="heatmap" style="height: 400px; width: 100%; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); z-index: 1;"></div>
+        
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                var map = L.map('heatmap').setView([12.97, 77.59], 5);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+
+                fetch('/api/heatmap_data')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.length > 0) {
+                            var heat = L.heatLayer(data, {
+                                radius: 25,
+                                blur: 15,
+                                maxZoom: 10,
+                                gradient: {0.4: 'blue', 0.65: 'lime', 1: 'red'}
+                            }).addTo(map);
+                            
+                            // Zoom map to fit data
+                            var bounds = new L.LatLngBounds(data.map(p => [p[0], p[1]]));
+                            map.fitBounds(bounds, {padding: [50, 50]});
+                        }
+                    });
+            });
+        </script>
+    </div>
+{% endblock %}

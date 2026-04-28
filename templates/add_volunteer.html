@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block content %}
+    <div style="display: flex; justify-content: center;">
+        <div class="glass-card" style="width: 100%; max-width: 600px;">
+            <h2>Register Volunteer</h2>
+            <p style="color: var(--text-muted); margin-bottom: 2rem;">Add real volunteer data into the system database.</p>
+            
+            <form method="POST" action="/add_volunteer">
+                <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div>
+                        <label>Full Name</label>
+                        <input type="text" name="name" required placeholder="e.g. John Doe">
+                    </div>
+                    <div>
+                        <label>Email Address</label>
+                        <input type="email" name="email" required placeholder="john@example.com">
+                    </div>
+                </div>
+                
+                <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div>
+                        <label>Verified Skill</label>
+                        <select name="skill" required>
+                            <option value="medical">Medical / Doctor</option>
+                            <option value="driver">Driver</option>
+                            <option value="rescue">Rescue / Helper</option>
+                            <option value="food">Food / Ration</option>
+                            <option value="general">General</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Base Rating (0-5)</label>
+                        <input type="number" name="rating" min="0" max="5" value="0" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <label>Location (Search or Click on map)</label>
+                        <button type="button" class="btn btn-small" onclick="getLocation()" style="padding: 0.2rem 0.8rem; font-size: 0.8rem; background: rgba(255,255,255,0.1);">📍 Use My Location</button>
+                    </div>
+                    
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <input type="text" id="locSearch" placeholder="Type city or area name to search..." style="flex: 1; padding: 0.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white;">
+                        <button type="button" class="btn btn-small" onclick="searchLocation()" style="padding: 0.5rem 1rem;">🔍 Search</button>
+                    </div>
+                    <input type="hidden" id="lat-input" name="latitude" required>
+                    <input type="hidden" id="lng-input" name="longitude" required>
+                    
+                    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+                    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+                    
+                    <div id="mapPicker" style="height: 250px; width: 100%; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); margin-top: 0.5rem; z-index: 1;"></div>
+                    
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;" id="coords-display">
+                        Coordinates: Not selected
+                    </div>
+
+                    <script>
+                        var map, marker;
+                        document.addEventListener('DOMContentLoaded', function() {
+                            map = L.map('mapPicker').setView([12.97, 77.59], 5);
+                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                attribution: '© OpenStreetMap contributors'
+                            }).addTo(map);
+
+                            // Fix Leaflet gray rendering issue
+                            setTimeout(() => { map.invalidateSize(); }, 500);
+
+                            map.on('click', function(e) {
+                                setMapLocation(e.latlng.lat, e.latlng.lng);
+                            });
+                        });
+
+                        function setMapLocation(lat, lng) {
+                            document.getElementById('lat-input').value = lat;
+                            document.getElementById('lng-input').value = lng;
+                            document.getElementById('coords-display').innerText = 'Coordinates: ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
+
+                            if (marker) {
+                                marker.setLatLng([lat, lng]);
+                            } else {
+                                marker = L.marker([lat, lng]).addTo(map);
+                            }
+                            map.setView([lat, lng], 13);
+                        }
+
+                        function getLocation() {
+                            if (navigator.geolocation) {
+                                navigator.geolocation.getCurrentPosition(function(position) {
+                                    setMapLocation(position.coords.latitude, position.coords.longitude);
+                                }, function() {
+                                    alert("Location access denied. Please click on the map.");
+                                });
+                            } else {
+                                alert("Geolocation is not supported by this browser.");
+                            }
+                        }
+                        function searchLocation() {
+                            var query = document.getElementById('locSearch').value;
+                            if (!query) return;
+                            fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query))
+                                .then(r => r.json())
+                                .then(data => {
+                                    if (data && data.length > 0) {
+                                        setMapLocation(parseFloat(data[0].lat), parseFloat(data[0].lon));
+                                    } else {
+                                        alert("Location not found. Try a different name.");
+                                    }
+                                }).catch(e => console.log(e));
+                        }
+                    </script>
+                </div>
+                
+                <div style="margin-top: 2rem; display: flex; justify-content: space-between; align-items: center;">
+                    <a href="/dashboard" style="color: var(--text-muted); text-decoration: none;">← Cancel</a>
+                    <button type="submit" class="btn">Save Volunteer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}

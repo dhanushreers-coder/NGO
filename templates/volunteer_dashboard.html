@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block content %}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div>
+            <h2>Volunteer Dashboard</h2>
+            <p style="color: var(--text-muted);">Welcome back, {{ vol.name }}. You have {{ vol.points }} rep points!</p>
+        </div>
+    </div>
+
+    <div class="glass-card">
+        <h3 style="margin-bottom: 1rem;">Your Dispatches</h3>
+        
+        {% if tasks %}
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <th style="padding: 1rem;">Task Title</th>
+                        <th style="padding: 1rem;">Urgency</th>
+                        <th style="padding: 1rem;">Status</th>
+                        <th style="padding: 1rem; text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in tasks %}
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 1rem;">{{ t.title }}</td>
+                        <td style="padding: 1rem;">
+                            {% if t.urgency == 3 %}
+                                <span style="color: #ef4444; font-weight: 600;">🚨 High</span>
+                            {% elif t.urgency == 2 %}
+                                <span style="color: #f59e0b;">⚠️ Medium</span>
+                            {% else %}
+                                <span style="color: #10b981;">Low</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 1rem;">
+                            {% if t.status == 'Notified' %}
+                                <span style="color: #f59e0b;">⏳ Action Required</span>
+                            {% elif t.status == 'Assigned' %}
+                                <span style="color: #3b82f6;">🚀 In Progress</span>
+                            {% else %}
+                                <span style="color: #10b981;">✅ Done</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 1rem; text-align: right;">
+                            {% if t.status == 'Notified' %}
+                                <form method="POST" action="/volunteer_accept/{{ t.id }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-small" style="padding: 0.4rem 1rem; font-size: 0.85rem; background: #10b981;">Accept Dispatch</button>
+                                </form>
+                            {% elif t.status == 'Assigned' %}
+                                {% if t.urgency == 3 %}
+                                    <div style="text-align: left; background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin-top: 0.5rem; border: 1px solid rgba(255,100,100,0.2);">
+                                        <h4 style="color: #ef4444; font-size: 0.9rem; margin-bottom: 0.5rem;">🚨 Emergency Comms Link</h4>
+                                        <form method="POST" action="/update_emergency/{{ t.id }}">
+                                            <input type="text" name="update_text" placeholder="Type status update to NGO..." value="{{ t.emergency_update or '' }}" required style="width: 100%; padding: 0.5rem; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: white; margin-bottom: 0.5rem;">
+                                            <button type="submit" class="btn btn-small" style="padding: 0.3rem 0.8rem; font-size: 0.8rem;">Send Update</button>
+                                        </form>
+                                    </div>
+                                {% else %}
+                                    <span style="font-size: 0.8rem; color: var(--text-muted);">Please complete the task.</span>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p style="color: var(--text-muted);">You have no dispatches assigned to you yet.</p>
+        {% endif %}
+    </div>
+{% endblock %}

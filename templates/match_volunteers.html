@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block content %}
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h2>Algorithm Results</h2>
+        <p style="color: var(--text-muted);">Target Context: {{ task.title }}</p>
+    </div>
+
+    <!-- LEAFLET MAP -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <div id="map" style="height: 300px; width: 100%; max-width: 800px; margin: 0 auto 2rem auto; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var map = L.map('map').setView([{{ task.latitude }}, {{ task.longitude }}], 10);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Task Marker
+            L.circleMarker([{{ task.latitude }}, {{ task.longitude }}], {
+                color: 'red', fillColor: '#f03', fillOpacity: 0.5, radius: 8
+            }).addTo(map).bindPopup("<b>Target Request</b>");
+
+            // Volunteers Markers
+            {% for res in top_volunteers %}
+                var vMarker = L.marker([{{ res.volunteer.latitude }}, {{ res.volunteer.longitude }}]).addTo(map);
+                vMarker.bindPopup("<b>{{ res.volunteer.name }}</b><br>Dist: {{ '%.1f'|format(res.distance) }} km");
+            {% endfor %}
+        });
+    </script>
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 1.5rem;">
+        {% if top_volunteers %}
+            {% for res in top_volunteers %}
+            {% set vol = res.volunteer %}
+            <div class="match-card" style="width: 100%; max-width: 800px; display: flex; flex-direction: column; padding: 1.5rem; gap: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="text-align: left; display: flex; gap: 1rem; align-items: center;">
+                        <div style="font-size: 2.5rem;">
+                            {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% else %}🥉{% endif %}
+                        </div>
+                        <div>
+                            <h3 style="color: #10b981; margin: 0;">{{ vol.name }} <span style="font-size: 0.9rem; color: #f59e0b;">⭐ {{ vol.rating }}</span></h3>
+                            <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.3rem;">
+                                Skill: {{ vol.skill }} | Dist: {{ "%.1f"|format(res.distance) }} km | Active Load: {{ vol.total_assigned - vol.tasks_completed }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <div class="score-badge" style="margin: 0; font-size: 1rem; padding: 0.5rem 1rem;">
+                            {{ "%.0f"|format(res.score) }} pts
+                        </div>
+                        <form method="POST" action="/dispatch/{{ task.id }}/{{ vol.id }}" style="margin: 0;">
+                            <button type="submit" class="btn btn-small" style="background: {{ 'linear-gradient(135deg, #10b981, #059669)' if loop.index == 1 else 'rgba(255,255,255,0.1)' }};">
+                                {{ 'Dispatch' if loop.index == 1 else 'Select Alt' }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- AI REASONING -->
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 1.1rem;">🧠</span>
+                    <div style="font-size: 0.85rem; color: #a5b4fc; font-family: monospace;">
+                        <span style="color: var(--text-muted);">AI Reasoning:</span> {{ res.explanation }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div style="font-size: 4rem; margin-bottom: 1rem; filter: grayscale(1);">❌</div>
+            <h3 style="color: #ef4444;">No Match Extracted</h3>
+            <p style="color: var(--text-muted);">The database query yielded no viable volunteers.</p>
+        {% endif %}
+        
+        <div style="margin-top: 1rem;">
+            <a href="/view_requests" style="color: var(--text-muted); text-decoration: none;">← Return to Queue</a>
+        </div>
+    </div>
+{% endblock %}

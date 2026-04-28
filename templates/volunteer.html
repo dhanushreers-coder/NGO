@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Volunteer Dashboard</h2>
+<p>Welcome, {{ user.name }}!</p>
+
+<div class="card">
+    <h3>Your Profile</h3>
+    <form method="POST" action="{{ url_for('update_profile') }}">
+        <div style="display: flex; gap: 1rem; width: 100%;">
+            <div style="flex: 1;">
+                <label>Phone</label>
+                <input type="text" name="phone" value="{{ profile.phone or '' }}">
+            </div>
+            <div style="flex: 1;">
+                <label>Location (ZIP or Number 0-100)</label>
+                <input type="number" name="location" value="{{ profile.location or 0 }}">
+            </div>
+        </div>
+        <div style="display: flex; gap: 1rem; width: 100%;">
+            <div style="flex: 1;">
+                <label>Primary Skill</label>
+                <select name="skill">
+                    <option value="doctor" {% if profile.skill == 'doctor' %}selected{% endif %}>Doctor</option>
+                    <option value="driver" {% if profile.skill == 'driver' %}selected{% endif %}>Driver</option>
+                    <option value="helper" {% if profile.skill == 'helper' %}selected{% endif %}>General Helper</option>
+                </select>
+            </div>
+            <div style="flex: 1;">
+                <label>Available?</label>
+                <select name="availability">
+                    <option value="yes" {% if profile.availability %}selected{% endif %}>Yes</option>
+                    <option value="no" {% if not profile.availability %}selected{% endif %}>No</option>
+                </select>
+            </div>
+        </div>
+        <button type="submit" style="width: auto;">Update Profile</button>
+    </form>
+</div>
+
+<h3>Assigned Tasks</h3>
+{% if tasks %}
+<div class="task-list">
+    {% for task in tasks %}
+    <div class="task-item">
+        <h4>{{ task.title }}</h4>
+        <p><strong>Description:</strong> {{ task.description }}</p>
+        <p><strong>Location:</strong> {{ task.location }} | <strong>Urgency:</strong> {{ task.urgency }}</p>
+        
+        <form action="{{ url_for('complete_task', task_id=task.id) }}" method="POST" style="margin-top: 1rem; display: inline-block;">
+            <button type="submit" style="background: var(--success); padding: 0.5rem 1rem;">Mark Completed</button>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<p>No tasks assigned right now.</p>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReliefSync - Smart Resource Allocation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="blob-c"></div>
+    <div class="blob-c blob-2"></div>
+    
+    <nav class="navbar glass">
+        <div class="logo" onclick="window.location.href='/'" style="cursor:pointer">Relief<span>Sync</span></div>
+        <div class="nav-links">
+            {% if session.get('role') == 'admin' %}
+                <a href="/dashboard">Dashboard</a>
+                <a href="/add_request">Add Request</a>
+                <a href="/view_requests">View Requests</a>
+            {% elif session.get('role') == 'volunteer' %}
+                <a href="/volunteer_dashboard">My Tasks</a>
+            {% endif %}
+            
+            {% if session.get('logged_in') %}
+                <a href="/logout" style="color: #ff8a8a; margin-left: 1rem; border: 1px solid rgba(255,100,100,0.2); padding: 5px 15px; border-radius: 8px;">Logout</a>
+            {% else %}
+                <a href="/login">Login</a>
+                <a href="/register">Register</a>
+            {% endif %}
+        </div>
+    </nav>
+    <div class="main-container">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="glass-card" style="padding: 1rem; margin-bottom: 1rem; border-left: 4px solid var(--primary); background: rgba(165, 180, 252, 0.1);">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

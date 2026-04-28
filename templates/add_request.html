@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% block content %}
+    <div style="display: flex; justify-content: center;">
+        <div class="glass-card" style="width: 100%; max-width: 600px;">
+            <h2>Initiate Request</h2>
+            <p style="color: var(--text-muted); margin-bottom: 2rem;">Fill in the parameters below for smart matching.</p>
+            
+            <form method="POST" action="/add_request">
+                <div class="form-group" style="display: flex; gap: 1rem; align-items: flex-end;">
+                    <div style="flex: 1;">
+                        <label>Task Title</label>
+                        <input type="text" id="title" name="title" required placeholder="e.g. Medical emergency rescue">
+                    </div>
+                    <button type="button" class="btn" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);" onclick="startVoice()">🎙️ Voice</button>
+                </div>
+                
+                <script>
+                    function processText(text) {
+                        document.getElementById("title").value = text;
+                        fetch('/api/parse_speech', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({text: text})
+                        })
+                        .then(r => r.json())
+                        .then(data => {
+                            document.querySelector('select[name="skill"]').value = data.skill;
+                            document.querySelector('input[name="urgency"]').value = data.urgency;
+                            document.querySelector('input[name="people_affected"]').value = data.people_affected;
+                        }).catch(e => console.log(e));
+                    }
+
+                    function startVoice() {
+                        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+                        if (!SpeechRec) {
+                            let manualText = prompt("Voice not supported here. Type your sentence to test the NLP engine (e.g. 'Need doctor for 5 people urgently'):");
+                            if (manualText) processText(manualText);
+                            return;
+                        }
+                        const recognition = new SpeechRec();
+                        recognition.continuous = false;
+                        recognition.interimResults = false;
+                        recognition.start();
+
+                        recognition.onresult = function(event) {
+                            processText(event.results[0][0].transcript);
+                        };
+                    }
+                </script>
+                
+                <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div>
+                        <label>Target Skill</label>
+                        <select name="skill" required>
+                            <option value="medical">Medical / Doctor</option>
+                            <option value="driver">Driver</option>
+                            <option value="rescue">Rescue / Helper</option>
+                            <option value="food">Food / Ration</option>
+                            <option value="general">General</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                    <label>People Affected</label>
+                    <input type="number" name="people_affected" id="people_input" value="1" min="1" oninput="predictResources()">
+                    <div id="prediction-box" style="margin-top: 0.8rem; padding: 0.8rem; background: rgba(165, 180, 252, 0.1); border: 1px solid rgba(165, 180, 252, 0.3); border-radius: 8px; display: none;">
+                        <span style="font-size: 1.1rem;">📊</span>
+                        <span id="prediction-text" style="font-size: 0.85rem; color: #a5b4fc; margin-left: 0.5rem;"></span>
+                    </div>
+                </div>
+                
+                <script>
+                    function predictResources() {
+                        const people = document.getElementById('people_input').value;
+                        const box = document.getElementById('prediction-box');
+                        const text = document.getElementById('prediction-text');
+                        
+                        if (people > 5) {
+                            box.style.display = 'block';
+                            const volNeeded = Math.ceil(people / 10) + 1;
+                            text.innerHTML = `<strong>AI Suggestion:</strong> Based on impact scale, we recommend assigning <strong>${volNeeded} volunteers</strong> for this area.`;
+                        } else {
+                            box.style.display = 'none';
+                        }
+                    }
+                </script>
+                </div>
+
+                <div class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <label>Location (Search or Click on map)</label>
+                        <button type="button" class="btn btn-small" onclick="getLocation()" style="padding: 0.2rem 0.8rem; font-size: 0.8rem; background: rgba(255,255,255,0.1);">📍 Use My Location</button>
+                    </div>
+                    
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <input type="text" id="locSearch" placeholder="Type city or area name to search..." style="flex: 1; padding: 0.5rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white;">
+                        <button type="button" class="btn btn-small" onclick="searchLocation()" style="padding: 0.5rem 1rem;">🔍 Search</button>
+                    </div>
+                    <input type="hidden" id="lat-input" name="latitude" required>
+                    <input type="hidden" id="lng-input" name="longitude" required>
+                    
+                    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+                    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+                    
+                    <div id="mapPicker" style="height: 250px; width: 100%; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); margin-top: 0.5rem; z-index: 1;"></div>
+                    
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;" id="coords-display">
+                        Coordinates: Not selected
+                    </div>
+
+                    <script>
+                        var map, marker;
+                        document.addEventListener('DOMContentLoaded', function() {
+                            map = L.map('mapPicker').setView([12.97, 77.59], 5); // Default zoom level 5 to show country context
+                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                attribution: '© OpenStreetMap contributors'
+                            }).addTo(map);
+
+                            // Fix Leaflet gray rendering issue
+                            setTimeout(() => { map.invalidateSize(); }, 500);
+
+                            map.on('click', function(e) {
+                                setMapLocation(e.latlng.lat, e.latlng.lng);
+                            });
+                        });
+
+                        function setMapLocation(lat, lng) {
+                            document.getElementById('lat-input').value = lat;
+                            document.getElementById('lng-input').value = lng;
+                            document.getElementById('coords-display').innerText = 'Coordinates: ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
+
+                            if (marker) {
+                                marker.setLatLng([lat, lng]);
+                            } else {
+                                marker = L.marker([lat, lng]).addTo(map);
+                            }
+                            map.setView([lat, lng], 13);
+                        }
+
+                        function getLocation() {
+                            if (navigator.geolocation) {
+                                navigator.geolocation.getCurrentPosition(function(position) {
+                                    setMapLocation(position.coords.latitude, position.coords.longitude);
+                                }, function() {
+                                    alert("Location access denied. Please click on the map.");
+                                });
+                            } else {
+                                alert("Geolocation is not supported by this browser.");
+                            }
+                        }
+                        function searchLocation() {
+                            var query = document.getElementById('locSearch').value;
+                            if (!query) return;
+                            fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query))
+                                .then(r => r.json())
+                                .then(data => {
+                                    if (data && data.length > 0) {
+                                        setMapLocation(parseFloat(data[0].lat), parseFloat(data[0].lon));
+                                    } else {
+                                        alert("Location not found. Try a different name.");
+                                    }
+                                }).catch(e => console.log(e));
+                        }
+                    </script>
+                </div>
+                
+                <div class="form-group">
+                    <label>Urgency Level (1-3) 🚨 3 Triggers Auto-Assign</label>
+                    <input type="number" name="urgency" min="1" max="3" required placeholder="1 = Low, 3 = High Crisis">
+                </div>
+                
+                <div style="margin-top: 2rem; display: flex; justify-content: space-between; align-items: center;">
+                    <a href="/dashboard" style="color: var(--text-muted); text-decoration: none;">← Cancel</a>
+                    <button type="submit" class="btn">Deploy Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}

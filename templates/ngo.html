@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>NGO Dashboard</h2>
+<p>Welcome, {{ user.name }}!</p>
+
+<div class="stats-grid" style="margin-top: 2rem;">
+    <div class="stat-card">
+        <h3>{{ stats.total_volunteers }}</h3>
+        <p>Total Volunteers</p>
+    </div>
+    <div class="stat-card" style="background: var(--success);">
+        <h3>{{ stats.active }}</h3>
+        <p>Active Tasks</p>
+    </div>
+    <div class="stat-card" style="background: #3B82F6;">
+        <h3>{{ stats.completed }}</h3>
+        <p>Completed Tasks</p>
+    </div>
+    <div class="stat-card" style="background: var(--danger);">
+        <h3>{{ stats.urgent }}</h3>
+        <p>Urgent Requests</p>
+    </div>
+</div>
+{% endblock %}
